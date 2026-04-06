@@ -1,0 +1,15 @@
+gwas_root: "" #CHANGE TO path to where your GWASs are
+gwas_filename: "gwas.QC.Transformed" #this is the gwas name for after running the gwas_qc pipeline, so it will look for directories within gwas-root, and eaxtract from the directories the file gwas.QC.Transformed.txt
+
+pvalue_threshold: 5e-8
+results_root: ""
+
+kg_bfile: "" #CHANGE TO path to your 1kg bfile, e.g. 
+pop_panel: "" #CHANGE TO the population panel 
+
+gnomad_file: "" #CHANGE TO path to your gnomad file, we provide a link to the gnomad download
+
+ref_fasta: "" #CHANGE TO path to your sei dir / resources/hg19_UCSC.fa
+
+
+n_mock_datasets: 300

@@ -1,0 +1,31 @@
+Building DAG of jobs...
+Using shell: /home/elkon2/thomym/micromamba/envs/modisco-env/bin/bash
+Provided cores: 6
+Rules claiming more threads will be scaled down.
+Provided resources: sample_null_blocks_concurrent=1
+Job stats:
+job                   count
+------------------  -------
+all                       1
+main_gwas_to_vcf          1
+mock_to_vcf             300
+pre_clumping              1
+sample_null_blocks        1
+total                   304
+
+Select jobs to execute...
+
+[Mon Jan 12 14:53:47 2026]
+rule pre_clumping:
+    input: /home/elkon2/hagailevi/PRS/GWASs/bcac_onco_eur-5pcs/gwas.QC.Transformed, /home/elkon2/thomym/PRS/datasets/dec_gaga/1kg/pop.panel, /home/elkon2/thomym/PRS/datasets/dec_gaga/1kg/original/ds.bed, /home/elkon2/thomym/PRS/datasets/dec_gaga/1kg/original/ds.bim, /home/elkon2/thomym/PRS/datasets/dec_gaga/1kg/original/ds.fam, /home/elkon2/hagailevi/PRS/data/auxiliary/gnomad/v4.1/gnomad.v4.1.chr_all_eur_maf_0
+    output: /home/gaga/thomym/clean_pipeline_article/try_1_results/bcac_onco_eur-5pcs/pre_clumping_and_ld/bcac_onco_eur-5pcs_FILTERED_1kg/ds.bed, /home/gaga/thomym/clean_pipeline_article/try_1_results/bcac_onco_eur-5pcs/pre_clumping_and_ld/bcac_onco_eur-5pcs_FILTERED_1kg/ds.bim, /home/gaga/thomym/clean_pipeline_article/try_1_results/bcac_onco_eur-5pcs/pre_clumping_and_ld/bcac_onco_eur-5pcs_FILTERED_1kg/ds.fam, /home/gaga/thomym/clean_pipeline_article/try_1_results/bcac_onco_eur-5pcs/pre_clumping_and_ld/gwas_for_clumping.txt
+    jobid: 2
+    reason: Missing output files: /home/gaga/thomym/clean_pipeline_article/try_1_results/bcac_onco_eur-5pcs/pre_clumping_and_ld/bcac_onco_eur-5pcs_FILTERED_1kg/ds.bim, /home/gaga/thomym/clean_pipeline_article/try_1_results/bcac_onco_eur-5pcs/pre_clumping_and_ld/bcac_onco_eur-5pcs_FILTERED_1kg/ds.fam, /home/gaga/thomym/clean_pipeline_article/try_1_results/bcac_onco_eur-5pcs/pre_clumping_and_ld/bcac_onco_eur-5pcs_FILTERED_1kg/ds.bed, /home/gaga/thomym/clean_pipeline_article/try_1_results/bcac_onco_eur-5pcs/pre_clumping_and_ld/gwas_for_clumping.txt
+    wildcards: gwas=bcac_onco_eur-5pcs
+    resources: tmpdir=/tmp
+
+RuleException in rule pre_clumping in file /home/gaga/thomym/clean_pipeline_article/code/pre_prediction/Snakefile, line 39:
+NameError: The name 'gnomad_file' is unknown in this context. Please make sure that you defined that variable. Also note that braces not used for variable access have to be escaped by repeating them, i.e. {{print $1}}, when formatting the following:
+
+        bash gen_pre_clumping.sh             -g {input.gwas}             -p {input.pop_panel}             -k {params.kg_bfile}             -b {config[results_root]}/{wildcards.gwas}             -n {wildcards.gwas}             -m {gnomad_file}
+        

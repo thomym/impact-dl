@@ -1,0 +1,114 @@
+Building DAG of jobs...
+Using shell: /home/elkon2/thomym/micromamba/envs/modisco-env/bin/bash
+Provided cores: 6
+Rules claiming more threads will be scaled down.
+Provided resources: sample_null_blocks_concurrent=1
+Job stats:
+job                   count
+------------------  -------
+all                       1
+main_gwas_to_vcf          4
+mock_to_vcf            1200
+sample_null_blocks        4
+total                  1209
+
+Select jobs to execute...
+
+[Wed Jan 14 14:20:55 2026]
+rule main_gwas_to_vcf:
+    input: /home/gaga/thomym/clean_pipeline_article/try_1_results/D2_ldlp_willer_2013/pre_clumping_and_ld/D2_ldlp_willer_2013_FILTERED_1kg/ds.bed, /home/gaga/thomym/clean_pipeline_article/try_1_results/D2_ldlp_willer_2013/pre_clumping_and_ld/D2_ldlp_willer_2013_FILTERED_1kg/ds.bim, /home/gaga/thomym/clean_pipeline_article/try_1_results/D2_ldlp_willer_2013/pre_clumping_and_ld/D2_ldlp_willer_2013_FILTERED_1kg/ds.fam, /home/gaga/thomym/clean_pipeline_article/try_1_results/D2_ldlp_willer_2013/pre_clumping_and_ld/gwas_for_clumping.txt
+    output: /home/gaga/thomym/clean_pipeline_article/try_1_results/D2_ldlp_willer_2013/clumping_and_vcfs_outputs/main_gwas_snps_correct_ref_final.vcf, /home/gaga/thomym/clean_pipeline_article/try_1_results/D2_ldlp_willer_2013/clumping_and_vcfs_outputs
+    jobid: 7
+    reason: Missing output files: /home/gaga/thomym/clean_pipeline_article/try_1_results/D2_ldlp_willer_2013/clumping_and_vcfs_outputs/main_gwas_snps_correct_ref_final.vcf, /home/gaga/thomym/clean_pipeline_article/try_1_results/D2_ldlp_willer_2013/clumping_and_vcfs_outputs
+    wildcards: gwas=D2_ldlp_willer_2013
+    resources: tmpdir=/tmp
+
+
+[Wed Jan 14 14:20:55 2026]
+rule main_gwas_to_vcf:
+    input: /home/gaga/thomym/clean_pipeline_article/try_1_results/D_bca_michailidou_2017/pre_clumping_and_ld/D_bca_michailidou_2017_FILTERED_1kg/ds.bed, /home/gaga/thomym/clean_pipeline_article/try_1_results/D_bca_michailidou_2017/pre_clumping_and_ld/D_bca_michailidou_2017_FILTERED_1kg/ds.bim, /home/gaga/thomym/clean_pipeline_article/try_1_results/D_bca_michailidou_2017/pre_clumping_and_ld/D_bca_michailidou_2017_FILTERED_1kg/ds.fam, /home/gaga/thomym/clean_pipeline_article/try_1_results/D_bca_michailidou_2017/pre_clumping_and_ld/gwas_for_clumping.txt
+    output: /home/gaga/thomym/clean_pipeline_article/try_1_results/D_bca_michailidou_2017/clumping_and_vcfs_outputs/main_gwas_snps_correct_ref_final.vcf, /home/gaga/thomym/clean_pipeline_article/try_1_results/D_bca_michailidou_2017/clumping_and_vcfs_outputs
+    jobid: 1
+    reason: Missing output files: /home/gaga/thomym/clean_pipeline_article/try_1_results/D_bca_michailidou_2017/clumping_and_vcfs_outputs/main_gwas_snps_correct_ref_final.vcf, /home/gaga/thomym/clean_pipeline_article/try_1_results/D_bca_michailidou_2017/clumping_and_vcfs_outputs
+    wildcards: gwas=D_bca_michailidou_2017
+    resources: tmpdir=/tmp
+
+
+[Wed Jan 14 14:20:55 2026]
+rule main_gwas_to_vcf:
+    input: /home/gaga/thomym/clean_pipeline_article/try_1_results/D_crd_lange_2017/pre_clumping_and_ld/D_crd_lange_2017_FILTERED_1kg/ds.bed, /home/gaga/thomym/clean_pipeline_article/try_1_results/D_crd_lange_2017/pre_clumping_and_ld/D_crd_lange_2017_FILTERED_1kg/ds.bim, /home/gaga/thomym/clean_pipeline_article/try_1_results/D_crd_lange_2017/pre_clumping_and_ld/D_crd_lange_2017_FILTERED_1kg/ds.fam, /home/gaga/thomym/clean_pipeline_article/try_1_results/D_crd_lange_2017/pre_clumping_and_ld/gwas_for_clumping.txt
+    output: /home/gaga/thomym/clean_pipeline_article/try_1_results/D_crd_lange_2017/clumping_and_vcfs_outputs/main_gwas_snps_correct_ref_final.vcf, /home/gaga/thomym/clean_pipeline_article/try_1_results/D_crd_lange_2017/clumping_and_vcfs_outputs
+    jobid: 3
+    reason: Missing output files: /home/gaga/thomym/clean_pipeline_article/try_1_results/D_crd_lange_2017/clumping_and_vcfs_outputs/main_gwas_snps_correct_ref_final.vcf, /home/gaga/thomym/clean_pipeline_article/try_1_results/D_crd_lange_2017/clumping_and_vcfs_outputs
+    wildcards: gwas=D_crd_lange_2017
+    resources: tmpdir=/tmp
+
+
+[Wed Jan 14 14:20:55 2026]
+rule main_gwas_to_vcf:
+    input: /home/gaga/thomym/clean_pipeline_article/try_1_results/bcac_onco_eur-5pcs/pre_clumping_and_ld/bcac_onco_eur-5pcs_FILTERED_1kg/ds.bed, /home/gaga/thomym/clean_pipeline_article/try_1_results/bcac_onco_eur-5pcs/pre_clumping_and_ld/bcac_onco_eur-5pcs_FILTERED_1kg/ds.bim, /home/gaga/thomym/clean_pipeline_article/try_1_results/bcac_onco_eur-5pcs/pre_clumping_and_ld/bcac_onco_eur-5pcs_FILTERED_1kg/ds.fam, /home/gaga/thomym/clean_pipeline_article/try_1_results/bcac_onco_eur-5pcs/pre_clumping_and_ld/gwas_for_clumping.txt
+    output: /home/gaga/thomym/clean_pipeline_article/try_1_results/bcac_onco_eur-5pcs/clumping_and_vcfs_outputs/main_gwas_snps_correct_ref_final.vcf, /home/gaga/thomym/clean_pipeline_article/try_1_results/bcac_onco_eur-5pcs/clumping_and_vcfs_outputs
+    jobid: 5
+    reason: Missing output files: /home/gaga/thomym/clean_pipeline_article/try_1_results/bcac_onco_eur-5pcs/clumping_and_vcfs_outputs, /home/gaga/thomym/clean_pipeline_article/try_1_results/bcac_onco_eur-5pcs/clumping_and_vcfs_outputs/main_gwas_snps_correct_ref_final.vcf
+    wildcards: gwas=bcac_onco_eur-5pcs
+    resources: tmpdir=/tmp
+
+[Wed Jan 14 14:20:58 2026]
+Error in rule main_gwas_to_vcf:
+    jobid: 7
+    input: /home/gaga/thomym/clean_pipeline_article/try_1_results/D2_ldlp_willer_2013/pre_clumping_and_ld/D2_ldlp_willer_2013_FILTERED_1kg/ds.bed, /home/gaga/thomym/clean_pipeline_article/try_1_results/D2_ldlp_willer_2013/pre_clumping_and_ld/D2_ldlp_willer_2013_FILTERED_1kg/ds.bim, /home/gaga/thomym/clean_pipeline_article/try_1_results/D2_ldlp_willer_2013/pre_clumping_and_ld/D2_ldlp_willer_2013_FILTERED_1kg/ds.fam, /home/gaga/thomym/clean_pipeline_article/try_1_results/D2_ldlp_willer_2013/pre_clumping_and_ld/gwas_for_clumping.txt
+    output: /home/gaga/thomym/clean_pipeline_article/try_1_results/D2_ldlp_willer_2013/clumping_and_vcfs_outputs/main_gwas_snps_correct_ref_final.vcf, /home/gaga/thomym/clean_pipeline_article/try_1_results/D2_ldlp_willer_2013/clumping_and_vcfs_outputs
+    shell:
+        
+        bash main_gwas_to_vcf_blacklist_local_bcf.sh             -n D2_ldlp_willer_2013             -b /home/gaga/thomym/clean_pipeline_article/try_1_results/D2_ldlp_willer_2013             -p 5e-8
+            -f /home/gaga/thomym/sei/sei-framework/resources/hg19_UCSC.fa
+        
+        (one of the commands exited with non-zero exit code; note that snakemake uses bash strict mode!)
+
+Removing output files of failed job main_gwas_to_vcf since they might be corrupted:
+/home/gaga/thomym/clean_pipeline_article/try_1_results/D2_ldlp_willer_2013/clumping_and_vcfs_outputs
+[Wed Jan 14 14:21:23 2026]
+Error in rule main_gwas_to_vcf:
+    jobid: 5
+    input: /home/gaga/thomym/clean_pipeline_article/try_1_results/bcac_onco_eur-5pcs/pre_clumping_and_ld/bcac_onco_eur-5pcs_FILTERED_1kg/ds.bed, /home/gaga/thomym/clean_pipeline_article/try_1_results/bcac_onco_eur-5pcs/pre_clumping_and_ld/bcac_onco_eur-5pcs_FILTERED_1kg/ds.bim, /home/gaga/thomym/clean_pipeline_article/try_1_results/bcac_onco_eur-5pcs/pre_clumping_and_ld/bcac_onco_eur-5pcs_FILTERED_1kg/ds.fam, /home/gaga/thomym/clean_pipeline_article/try_1_results/bcac_onco_eur-5pcs/pre_clumping_and_ld/gwas_for_clumping.txt
+    output: /home/gaga/thomym/clean_pipeline_article/try_1_results/bcac_onco_eur-5pcs/clumping_and_vcfs_outputs/main_gwas_snps_correct_ref_final.vcf, /home/gaga/thomym/clean_pipeline_article/try_1_results/bcac_onco_eur-5pcs/clumping_and_vcfs_outputs
+    shell:
+        
+        bash main_gwas_to_vcf_blacklist_local_bcf.sh             -n bcac_onco_eur-5pcs             -b /home/gaga/thomym/clean_pipeline_article/try_1_results/bcac_onco_eur-5pcs             -p 5e-8
+            -f /home/gaga/thomym/sei/sei-framework/resources/hg19_UCSC.fa
+        
+        (one of the commands exited with non-zero exit code; note that snakemake uses bash strict mode!)
+
+Removing output files of failed job main_gwas_to_vcf since they might be corrupted:
+/home/gaga/thomym/clean_pipeline_article/try_1_results/bcac_onco_eur-5pcs/clumping_and_vcfs_outputs
+[Wed Jan 14 14:21:37 2026]
+Error in rule main_gwas_to_vcf:
+    jobid: 3
+    input: /home/gaga/thomym/clean_pipeline_article/try_1_results/D_crd_lange_2017/pre_clumping_and_ld/D_crd_lange_2017_FILTERED_1kg/ds.bed, /home/gaga/thomym/clean_pipeline_article/try_1_results/D_crd_lange_2017/pre_clumping_and_ld/D_crd_lange_2017_FILTERED_1kg/ds.bim, /home/gaga/thomym/clean_pipeline_article/try_1_results/D_crd_lange_2017/pre_clumping_and_ld/D_crd_lange_2017_FILTERED_1kg/ds.fam, /home/gaga/thomym/clean_pipeline_article/try_1_results/D_crd_lange_2017/pre_clumping_and_ld/gwas_for_clumping.txt
+    output: /home/gaga/thomym/clean_pipeline_article/try_1_results/D_crd_lange_2017/clumping_and_vcfs_outputs/main_gwas_snps_correct_ref_final.vcf, /home/gaga/thomym/clean_pipeline_article/try_1_results/D_crd_lange_2017/clumping_and_vcfs_outputs
+    shell:
+        
+        bash main_gwas_to_vcf_blacklist_local_bcf.sh             -n D_crd_lange_2017             -b /home/gaga/thomym/clean_pipeline_article/try_1_results/D_crd_lange_2017             -p 5e-8
+            -f /home/gaga/thomym/sei/sei-framework/resources/hg19_UCSC.fa
+        
+        (one of the commands exited with non-zero exit code; note that snakemake uses bash strict mode!)
+
+Removing output files of failed job main_gwas_to_vcf since they might be corrupted:
+/home/gaga/thomym/clean_pipeline_article/try_1_results/D_crd_lange_2017/clumping_and_vcfs_outputs
+[Wed Jan 14 14:21:40 2026]
+Error in rule main_gwas_to_vcf:
+    jobid: 1
+    input: /home/gaga/thomym/clean_pipeline_article/try_1_results/D_bca_michailidou_2017/pre_clumping_and_ld/D_bca_michailidou_2017_FILTERED_1kg/ds.bed, /home/gaga/thomym/clean_pipeline_article/try_1_results/D_bca_michailidou_2017/pre_clumping_and_ld/D_bca_michailidou_2017_FILTERED_1kg/ds.bim, /home/gaga/thomym/clean_pipeline_article/try_1_results/D_bca_michailidou_2017/pre_clumping_and_ld/D_bca_michailidou_2017_FILTERED_1kg/ds.fam, /home/gaga/thomym/clean_pipeline_article/try_1_results/D_bca_michailidou_2017/pre_clumping_and_ld/gwas_for_clumping.txt
+    output: /home/gaga/thomym/clean_pipeline_article/try_1_results/D_bca_michailidou_2017/clumping_and_vcfs_outputs/main_gwas_snps_correct_ref_final.vcf, /home/gaga/thomym/clean_pipeline_article/try_1_results/D_bca_michailidou_2017/clumping_and_vcfs_outputs
+    shell:
+        
+        bash main_gwas_to_vcf_blacklist_local_bcf.sh             -n D_bca_michailidou_2017             -b /home/gaga/thomym/clean_pipeline_article/try_1_results/D_bca_michailidou_2017             -p 5e-8
+            -f /home/gaga/thomym/sei/sei-framework/resources/hg19_UCSC.fa
+        
+        (one of the commands exited with non-zero exit code; note that snakemake uses bash strict mode!)
+
+Removing output files of failed job main_gwas_to_vcf since they might be corrupted:
+/home/gaga/thomym/clean_pipeline_article/try_1_results/D_bca_michailidou_2017/clumping_and_vcfs_outputs
+Shutting down, this might take some time.
+Exiting because a job execution failed. Look above for error message
+Complete log: .snakemake/log/2026-01-14T142040.907885.snakemake.log

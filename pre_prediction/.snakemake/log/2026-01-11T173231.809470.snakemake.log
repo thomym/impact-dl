@@ -1,0 +1,10 @@
+Building DAG of jobs...
+MissingInputException in rule pre_clumping in file /home/gaga/thomym/clean_pipeline_article/code/pre_prediction/Snakefile, line 39:
+Missing input files for rule pre_clumping:
+    output: /home/gaga/thomym/clean_pipeline_article/try_1_results/bcac_onco_eur-5pcs/pre_clumping_and_ld/bcac_onco_eur-5pcs_FILTERED_1kg/ds.bed, /home/gaga/thomym/clean_pipeline_article/try_1_results/bcac_onco_eur-5pcs/pre_clumping_and_ld/bcac_onco_eur-5pcs_FILTERED_1kg/ds.bim, /home/gaga/thomym/clean_pipeline_article/try_1_results/bcac_onco_eur-5pcs/pre_clumping_and_ld/bcac_onco_eur-5pcs_FILTERED_1kg/ds.fam, /home/gaga/thomym/clean_pipeline_article/try_1_results/bcac_onco_eur-5pcs/pre_clumping_and_ld/gwas_for_clumping.txt
+    wildcards: gwas=bcac_onco_eur-5pcs
+    affected files:
+        /home/elkon2/thomym/PRS/datasets/dec_gaga/1kg/original/ds.fam
+        /home/elkon2/thomym/PRS/datasets/dec_gaga/1kg/original/ds.bim
+        /home/elkon2/thomym/PRS/datasets/dec_gaga/1kg/pop.panel
+        /home/elkon2/thomym/PRS/datasets/dec_gaga/1kg/original/ds.bed
