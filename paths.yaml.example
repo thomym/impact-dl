@@ -1,0 +1,89 @@
+# Single source of truth for filesystem paths and pipeline knobs.
+#
+# USAGE
+#   cp paths.yaml.example paths.yaml
+#   # then edit paths.yaml — at minimum, set `work_dir` and `gwas_names`
+#
+# Any line with `${var}` is interpolated from earlier lines (recursively).
+# Any line written as an absolute path is used as-is, so the layout below is
+# only the *default* — you can point any single path at a location outside
+# `work_dir`. Example:
+#   sei_framework: /vol/scratch/shared/sei-framework
+#
+# Per-script override:
+#   --paths_yaml /path/to/other.yaml  uses a different yaml
+#   --gnomad_dir /elsewhere/gnomad/   overrides a single path
+#
+# ---------------------------------------------------------------------------
+# Top-level layout
+# ---------------------------------------------------------------------------
+
+work_dir:        /CHANGE/ME/impact_dl_workspace
+sei_framework:   ${work_dir}/sei-framework
+resources:       ${work_dir}/resources
+gwas_root:       ${work_dir}/gwas
+results_root:    ${work_dir}/results
+
+# ---------------------------------------------------------------------------
+# Reference data (under `resources/` by default; see README for downloads)
+# ---------------------------------------------------------------------------
+
+gnomad_version:  r4.1
+# Per-chromosome MAF tables used by gwas_preprocess/prepare_gwas.py
+gnomad_dir:      ${resources}/gnomad/${gnomad_version}
+# Single concatenated MAF table (CHROM POS ID REF ALT MAF) used by
+# pre_prediction/gen_pre_clumping.sh to look up MAF for clumping SNPs.
+gnomad_file:     ${resources}/gnomad/${gnomad_version}/gnomad.${gnomad_version}.all_eur_maf_0
+
+kg_bfile:        ${resources}/1kg/ds
+pop_panel:       ${resources}/1kg/integrated_call_samples_v3.20130502.ALL.panel
+
+vep_cache:       ${resources}/vep_cache
+
+# Ontology data:
+#   ontology_dir holds .owl files (user downloads), the sup_table_2 input, the
+#   bundled BioPortal caches, and the matched/ + collapsed/ subdirs (written
+#   by 4a-four_ontologies.py and 4b-ancestor_and_collapse.py).
+ontology_dir:           ${resources}/ontology
+sup2_file:              ${ontology_dir}/sup_table_2_sei_article.csv
+bioportal_cache_dir:    ${ontology_dir}/cache
+ontology_matched_dir:   ${ontology_dir}/matched
+ontology_collapsed_dir: ${ontology_dir}/collapsed
+
+# Per-ontology OWL files (download from OLS — see README step 4)
+efo_owl:         ${ontology_dir}/efo.owl
+bto_owl:         ${ontology_dir}/bto.owl
+cl_owl:          ${ontology_dir}/cl.owl
+clo_owl:         ${ontology_dir}/clo.owl
+
+# ---------------------------------------------------------------------------
+# Sei-provided files (live inside the sei-framework clone)
+# ---------------------------------------------------------------------------
+
+ref_fasta:       ${sei_framework}/resources/hg19_UCSC.fa
+target_names:    ${sei_framework}/model/target.names
+
+# ---------------------------------------------------------------------------
+# Container runtime
+# ---------------------------------------------------------------------------
+
+container_runtime: udocker                                  # udocker | docker
+vep_image:         ensemblorg/ensembl-vep:release_113.0
+
+# ---------------------------------------------------------------------------
+# GWAS list — names of subdirectories under `gwas_root`. Each must contain
+# `gwas.QC.Transformed` (output of gwas_preprocess/) before pre_prediction
+# runs.
+# ---------------------------------------------------------------------------
+
+gwas_names:
+  - CHANGE_ME_gwas_name
+
+# ---------------------------------------------------------------------------
+# Pipeline knobs (rarely changed)
+# ---------------------------------------------------------------------------
+
+pvalue_threshold:    5e-8
+ld_r2:               0.69
+n_mock_datasets:     300
+min_cells_per_term:  10    # step 4c: minimum annotations per ontology term to test

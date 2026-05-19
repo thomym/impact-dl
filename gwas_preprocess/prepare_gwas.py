@@ -1,26 +1,55 @@
+"""
+Reformat a raw GWAS summary statistics file and merge MAF from gnomAD.
+
+INPUT
+    ${gwas_root}/${discovery}/gwas_raw.tsv
+        A whitespace-separated GWAS summary stats file with a header row.
+        Column names may be in any common convention — see the d_header dict in
+        reformat_gwas() for the recognized aliases (e.g. 'beta', 'EFFECT',
+        'Beta' all map to 'BETA'; 'rs_id', 'SNPID', 'MarkerName' all map to
+        'SNP'; etc.). If your file uses headers not in that dict, either rename
+        them manually before running OR add the mapping to d_header.
+        Required (after renaming): SNP, CHR, BP, A1, A2, P. Optional: SE, INFO,
+        N, BETA, OR, MAF (filled with sensible defaults if missing).
+
+OUTPUT
+    ${gwas_root}/${discovery}/gwas.tsv
+        12 columns in this order:
+            SNP CHR BP A1 A2 MAF SE P N INFO BETA OR
+
+USAGE
+    python prepare_gwas.py --discovery <gwas_name>
+
+    Paths default to gwas_root / resources / gnomad_version from paths.yaml.
+    See `--help` for per-GWAS knobs and overrides.
+"""
+
 import numpy as np
 import argparse
 import os
 import pandas as pd
-import constants
-from multiprocessing import Pool 
+from multiprocessing import Pool
 
 
-def merge_maf_per_chr(df, chrom, discovery_population, maf_th, version):
+def merge_maf_per_chr(df, chrom, discovery_population, maf_th, version, gnomad_dir):
 
     print(f"start merging maf for chr {chrom}")
+    maf_file = os.path.join(
+        gnomad_dir,
+        f"gnomad.{version}.chr{chrom}_{discovery_population.lower()}_maf_{maf_th.replace('.', '')}",
+    )
     try:
-        df_maf_original = pd.read_csv(os.path.join(constants.AUXILIARY_PATH, 'gnomad', version,
-                                  f"gnomad.{version}.chr{chrom}_{discovery_population.lower()}_maf_{maf_th.replace('.','')}"), sep='\t')
-        df_maf_original['CHROM']=df_maf_original['CHROM'].apply(lambda a: int(a.split('chr', '')) if type(a)==str else a)
+        df_maf_original = pd.read_csv(maf_file, sep='\t')
+        df_maf_original['CHROM']=df_maf_original['CHROM'].apply(lambda a: int(a.replace('chr', '')) if type(a)==str else a)
         df_maf_reverse = df_maf_original.copy()
-        df_maf_reverse['REF'] = df_maf_original['ALT'] 
-        df_maf_reverse['ALT'] = df_maf_original['REF'] 
-        df_maf_reverse['MAF'] = 1-df_maf_original['MAF'] 
+        df_maf_reverse['REF'] = df_maf_original['ALT']
+        df_maf_reverse['ALT'] = df_maf_original['REF']
+        df_maf_reverse['MAF'] = 1-df_maf_original['MAF']
         df_maf=pd.concat((df_maf_original, df_maf_reverse),ignore_index=True)
     except Exception as e:
-        print(f"Error in file gnomad.{version}.chr{chrom}_{discovery_population.lower()}_maf_{maf_th.replace('.','')}")
-        raise e
+        print(f"Error reading gnomAD file for chr {chrom}: {maf_file}")
+        print(f"  ({type(e).__name__}) {e}")
+        raise
     df_maf.columns = [f'{c}_gnomad' for c in df_maf.columns]
 
     df_with_maf=pd.merge(df[(df['CHR'].astype(str)==str(chrom)) | (df['CHR'].astype(str)==f'chr{chrom}') ], df_maf, how='left', left_on=['CHR', 'BP', 'A2', 'A1'], right_on=['CHROM_gnomad', 'POS_gnomad', 'REF_gnomad', 'ALT_gnomad'])
@@ -43,21 +72,10 @@ def align_maf(row):
     row['MAF']=row['MAF_gnomad']
     return row
 
-def adjust_maf_old(a):
-    # print(a)
-    # print(a['A1'], a['A2'], a['ALT_gnomad'], a['REF_gnomad'])
-    if a['A1'] == a['ALT_gnomad'] and a['A2'] == a['REF_gnomad']:
-        return a['MAF_gnomad']
-    elif a['A1'] == a['REF_gnomad'] and a['A2'] == a['ALT_gnomad']:
-        return 1 - a['MAF_gnomad']
-    else:
-        return -1
-
-
-def reformat_gwas(discovery, discovery_population, N, default_maf, maf_th, chrs, version):
+def reformat_gwas(discovery, discovery_population, N, default_maf, maf_th, chrs, version, work_dir, gnomad_dir):
     print(f"starting reformatting {discovery}")
-    df = pd.read_csv(os.path.join(constants.GWASS_PATH, discovery, 'gwas_raw.tsv'), sep=r'\s+')
-    headers = ['SNP', 'CHR', 'BP', 'A1', 'A2', 'MAF', 'SE', 'P', 'N', 'INFO', 'BETA', 'OR'] # pd.read_csv(os.path.join(constants.GWASS_PATH, 'GIANT_1', 'gwas.tsv'), sep='\t').columns
+    df = pd.read_csv(os.path.join(work_dir, discovery, 'gwas_raw.tsv'), sep=r'\s+')
+    headers = ['SNP', 'CHR', 'BP', 'A1', 'A2', 'MAF', 'SE', 'P', 'N', 'INFO', 'BETA', 'OR']
     print(f"# of SNPs in raw GWAS: {len(df)}")
 
     # A1, A2
@@ -110,11 +128,9 @@ def reformat_gwas(discovery, discovery_population, N, default_maf, maf_th, chrs,
 
     print(f"# of remaining SNPs: {len(df)}")
     print('start merging MAF')
-    chrom_dfs=[]
-   
-    params=[] 
+    params=[]
     for chrom in chrs:
-        params.append((df, chrom, discovery_population, maf_th, version))
+        params.append((df, chrom, discovery_population, maf_th, version, gnomad_dir))
     
     with Pool(22) as p:
         chrom_with_mafs=p.starmap(merge_maf_per_chr, params)
@@ -128,31 +144,51 @@ def reformat_gwas(discovery, discovery_population, N, default_maf, maf_th, chrs,
     print('End merging MAF')
 
     df=df.reindex(headers, axis=1).replace([np.inf, -np.inf], np.nan)
-    print(f'Warning: found null in {df.isnull().any(axis=1).sum()}/{len(df)} rows. Removing these lines')
-    # df.dropna(inplace=True)
-    df.to_csv(os.path.join(constants.GWASS_PATH, discovery, 'gwas.tsv'), index=False, sep='\t')
+    print(f'Warning: found null in {df.isnull().any(axis=1).sum()}/{len(df)} rows.')
+    df.to_csv(os.path.join(work_dir, discovery, 'gwas.tsv'), index=False, sep='\t')
     print(f'Done reformatting {discovery}')
 
 
 if __name__ == '__main__':
+    import sys
+    sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    from paths import load_paths
 
-    parser = argparse.ArgumentParser(description='args')
-    parser.add_argument('-d', '--discovery', dest='discovery', help='', default="bcac_onco_eas1-5pcs-test")
-    parser.add_argument('-n', '--N', dest='N', help='', default=100000)
-    parser.add_argument('-t', '--maf_th', dest='maf_th', help='', default="0")
-    parser.add_argument('-c', '--chrs', dest='chrs', help='', default="all")
-    parser.add_argument('-dp', '--discovery_population', dest='discovery_population', help='', default='EUR')
-    parser.add_argument('-dm', '--default_maf', dest='default_maf', help='', default=0.05)
-    parser.add_argument('-v', '--version', dest='version', help='', default="r2.1.1")
+    parser = argparse.ArgumentParser(description='Reformat a GWAS summary stats file and merge MAF from gnomAD.')
+    parser.add_argument('-d', '--discovery', dest='discovery', required=True,
+                        help='GWAS name (subdirectory under gwas_root). Comma-separated for multiple.')
+    parser.add_argument('-n', '--N', dest='N', default=100000,
+                        help='Sample size to fill the N column if missing.')
+    parser.add_argument('-t', '--maf_th', dest='maf_th', default="0",
+                        help='MAF threshold used in the gnomAD filename suffix.')
+    parser.add_argument('-c', '--chrs', dest='chrs', default="all",
+                        help='Chromosomes to process (e.g. "1,2,3" or "all").')
+    parser.add_argument('-dp', '--discovery_population', dest='discovery_population', default='EUR',
+                        help='Population code used in the gnomAD filename.')
+    parser.add_argument('-dm', '--default_maf', dest='default_maf', default=0.05,
+                        help='Fallback MAF when no gnomAD match is found.')
+    # Optional overrides — defaults come from paths.yaml.
+    parser.add_argument('-v', '--version', dest='version', default=None,
+                        help='gnomAD version (default: gnomad_version from paths.yaml).')
+    parser.add_argument('-w', '--work_dir', dest='work_dir', default=None,
+                        help='Root containing one subdir per GWAS (default: gwas_root from paths.yaml).')
+    parser.add_argument('-a', '--gnomad_dir', dest='gnomad_dir', default=None,
+                        help='Directory holding per-chromosome gnomAD MAF tables '
+                             '(default: gnomad_dir from paths.yaml).')
+    parser.add_argument('--paths_yaml', default=None,
+                        help='Path to paths.yaml (default: <repo>/paths.yaml).')
     args = parser.parse_args()
+
+    paths = load_paths(args.paths_yaml)
+    work_dir = args.work_dir or paths['gwas_root']
+    gnomad_dir = args.gnomad_dir or paths['gnomad_dir']
+    version = args.version or paths['gnomad_version']
+
     gwass = args.discovery.split(',')
-    chrs = list(range(1,23)) if args.chrs=="all" else [int(a) for a in args.chrs.split(',')]
+    chrs = list(range(1, 23)) if args.chrs == "all" else [int(a) for a in args.chrs.split(',')]
     N = args.N
-    version = args.version
     discovery_population = args.discovery_population
     maf_th = args.maf_th
     default_maf = float(args.default_maf)
-    params = []
     for discovery in gwass:
-        params.append([discovery])
-        reformat_gwas(discovery, discovery_population, N, default_maf, maf_th, chrs, version)
+        reformat_gwas(discovery, discovery_population, N, default_maf, maf_th, chrs, version, work_dir, gnomad_dir)

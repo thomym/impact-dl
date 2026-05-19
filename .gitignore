@@ -1,0 +1,14 @@
+# User-local paths config (use paths.yaml.example as template)
+paths.yaml
+
+# Snakemake metadata
+.snakemake/
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+
+# Stray SLURM logs (the pipeline writes its own logs into ${results_root}/...)
+slurm-*.out
+slurm-*.err

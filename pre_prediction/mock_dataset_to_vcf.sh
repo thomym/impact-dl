@@ -9,32 +9,39 @@ set -euo pipefail
 
 usage() {
     cat <<EOF
-Usage: $0 -k <100genomes_bfile> -b <base_dir> -i <mock_index> [options]
+Usage: $0 -k <1kg_bfile_prefix> -b <base_dir> -i <mock_index> -f <ref_fasta> -C <vep_cache> [options]
 
 Mandatory arguments:
-  -k  Path prefix for the 1kg plink file
-  -b  Base directory for outputs
-  -i  Mock dataset index (e.g., 1, 2, 3, ...)
+  -k  Path prefix for the filtered 1KG PLINK bfile.
+  -b  Base directory: \${results_root}/\${gwas_name}.
+  -i  Mock dataset index (1..n_mock_datasets).
+  -f  Reference FASTA (typically \${sei_framework}/resources/hg19_UCSC.fa).
+  -C  Host path to VEP cache, mounted as /opt/vep/.vep in the container.
 
 Optional arguments:
-  -f  Fasta file for analysis
-  -r  r² threshold for LD clumping (default: 0.69)
-  -p  pvalue threshold for clumping (default: 5e-8)
+  -c  Container runtime: udocker (default) or docker.
+  -I  VEP container image (default: ensemblorg/ensembl-vep:release_113.0).
 
 EOF
     exit 1
 }
 
 # --- Default Configuration ---
-RENAME_CHR_FILE="rename_chrs.txt"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+RENAME_CHR_FILE="${SCRIPT_DIR}/rename_chrs.txt"
+CONTAINER_RUNTIME=udocker
+VEP_IMAGE=ensemblorg/ensembl-vep:release_113.0
 
 # --- Parse Command-Line Arguments ---
-while getopts ":k:b:i:r:p:f:" opt; do
+while getopts ":k:b:i:r:p:f:c:I:C:" opt; do
     case ${opt} in
         k) KG_BFILE="${OPTARG}" ;;
         b) BASE_DIR="${OPTARG}" ;;
         i) MOCK_INDEX="${OPTARG}" ;;
         f) REF_FASTA="${OPTARG}" ;;
+        c) CONTAINER_RUNTIME="${OPTARG}" ;;
+        I) VEP_IMAGE="${OPTARG}" ;;
+        C) VEP_CACHE="${OPTARG}" ;;
         \?)
             echo "Invalid option: -$OPTARG" >&2
             usage
@@ -48,8 +55,8 @@ done
 shift $((OPTIND - 1))
 
 # --- Validate Mandatory Parameters ---
-if [[ -z "${KG_BFILE:-}" || -z "${BASE_DIR:-}" || -z "${MOCK_INDEX:-}" ]]; then
-    echo "ERROR: Missing required arguments: -k, -b, -i" >&2
+if [[ -z "${KG_BFILE:-}" || -z "${BASE_DIR:-}" || -z "${MOCK_INDEX:-}" || -z "${REF_FASTA:-}" || -z "${VEP_CACHE:-}" ]]; then
+    echo "ERROR: Missing required arguments: -k, -b, -i, -f, -C" >&2
     usage
 fi
 
@@ -65,7 +72,7 @@ EUR_1KG_IDS="${PRE_CLUMPING}/eur_1kg_ids.txt"
 mkdir -p $OUTPUT_DIR/$NAME
 mkdir -p $VEP_OUTPUT_DIR/$NAME
 
-echo "🚀 Processing dataset: $FILE"
+echo "Processing dataset: $FILE"
 
 # Check if file exists
 if [[ ! -f "$FILE" ]]; then
@@ -86,9 +93,11 @@ plink2 --bfile $OUTPUT_DIR/$NAME/${NAME}_snps_from_clumps \
     --export vcf --fa $REF_FASTA --out $OUTPUT_DIR/$NAME/${NAME}_snps_correct_ref --ref-from-fa force
 
 
-#TODO: provide VEP container
 # Step 4: VEP Annotation
-udocker run --volume=/home vep_container vep \
+${CONTAINER_RUNTIME} run \
+    -v "${BASE_DIR}:${BASE_DIR}" \
+    -v "${VEP_CACHE}:/opt/vep/.vep" \
+    "${VEP_IMAGE}" vep \
     -i $OUTPUT_DIR/$NAME/${NAME}_snps_correct_ref.vcf \
     -o $VEP_OUTPUT_DIR/$NAME/${NAME}_vep_output.txt \
     --species homo_sapiens --assembly GRCh37 --cache --offline \
@@ -116,7 +125,6 @@ echo "All SNPs: $(wc -l < $OUTPUT_DIR/$NAME/${NAME}_snp_list.txt)"
 echo "Coding SNPs: $(wc -l < $OUTPUT_DIR/$NAME/${NAME}_coding_snps_ids.txt)"
 echo "Non-coding SNPs: $(wc -l < $OUTPUT_DIR/$NAME/${NAME}_non_coding_snps_ids.txt)"
 
-#TODO: change like in main script - but here it is inside the filter_mock_datasets_vcfs.sh
 echo "Filtering and preparing VCF file..."
 
 echo "Renaming Chromosomes..."

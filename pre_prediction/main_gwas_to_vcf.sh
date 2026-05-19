@@ -10,25 +10,22 @@ set -euo pipefail
 
 usage() {
     cat <<EOF
-Usage: $0  -n <gwas_name> -b <base_dir> [options]
+Usage: $0 -n <gwas_name> -b <base_dir> -f <ref_fasta> [options]
 
 Mandatory arguments:
-  -n   gwas name
-  -b  Base directory for outputs. should be the one where the pre_clumping_and_ld directory was be created, 
-        and now the clumping_and_vcfs_outputs dir will also be
-
-        
+  -n  GWAS name (used to locate inputs/outputs under -b).
+  -b  Base directory: \${results_root}/\${gwas_name}. The pre_clumping_and_ld/
+      directory must already exist here (output of gen_pre_clumping.sh).
+  -f  Reference FASTA (typically \${sei_framework}/resources/hg19_UCSC.fa).
 
 Optional arguments:
-  -g  Path to the GWAS file. This is the file you should have created with gen_pre_clumping
-      For clumping, the script uses only the following columns:
-        SNP (SNP identifier), CHR (chromosome), BP (base pair position), and P (p-value).
-
-  -f  Fasta file for analysis. default is the one given by Sei.
-  -r  r² threshold for LD clumping.
-      Default: 0.69
-  -p pvalue threshold for clumping.
-      Default: 5e-8
+  -g  GWAS file for clumping (default: \${base_dir}/pre_clumping_and_ld/gwas_for_clumping.txt).
+  -r  r² threshold for LD clumping (default: 0.69).
+  -p  P-value threshold for clumping (default: 5e-8).
+  -c  Container runtime: udocker (default) or docker.
+  -I  VEP container image (default: ensemblorg/ensembl-vep:release_113.0).
+  -C  Host path to VEP cache, mounted as /opt/vep/.vep in the container.
+      Required for the VEP annotation step.
 
 EOF
     exit 1
@@ -37,21 +34,26 @@ EOF
 
 
 # --- Default Configuration ---
-RENAME_CHR_FILE="rename_chrs.txt"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+RENAME_CHR_FILE="${SCRIPT_DIR}/rename_chrs.txt"
 PVAL_THRESHOLD=5e-8
 LD_R2_THRESHOLD=0.69
+CONTAINER_RUNTIME=udocker
+VEP_IMAGE=ensemblorg/ensembl-vep:release_113.0
 
 
 # --- Parse Command-Line Arguments ---
-while getopts ":g:b:n:r:p:f:" opt; do
+while getopts ":g:b:n:r:p:f:c:I:C:" opt; do
     case ${opt} in
-        g) GWAS_FILE="${OPTARG}" ;;         # Path to GWAS summary statistics - filtered for clumping by the gen_pre_clumping script
-        #k) KG_BFILE="${OPTARG}" ;;          # 1KG dataset - filtered by the gwas in the gen_pre_clumping script
-        b) BASE_DIR="${OPTARG}" ;;          # Base dir from the gen_pre_clumping script, in it we will create the output directory
-        n) GWAS_NAME="${OPTARG}" ;;        # GWAS analysis name
-        r) LD_R2_THRESHOLD="${OPTARG}" ;;   # LD r² threshold
-        p) PVAL_THRESHOLD="${OPTARG}" ;;    #pvalue threshold
+        g) GWAS_FILE="${OPTARG}" ;;
+        b) BASE_DIR="${OPTARG}" ;;
+        n) GWAS_NAME="${OPTARG}" ;;
+        r) LD_R2_THRESHOLD="${OPTARG}" ;;
+        p) PVAL_THRESHOLD="${OPTARG}" ;;
         f) REF_FASTA="${OPTARG}" ;;
+        c) CONTAINER_RUNTIME="${OPTARG}" ;;
+        I) VEP_IMAGE="${OPTARG}" ;;
+        C) VEP_CACHE="${OPTARG}" ;;
         \?)
             echo "Invalid option: -$OPTARG" >&2
             usage
@@ -65,8 +67,8 @@ done
 shift $((OPTIND - 1))
 
 # --- Validate Mandatory Parameters ---
-if [[ -z "${GWAS_NAME:-}" || -z "${BASE_DIR:-}" ]]; then
-    echo "ERROR: Missing required arguments: -k 1kg bfile prefix, -b base directory." >&2
+if [[ -z "${GWAS_NAME:-}" || -z "${BASE_DIR:-}" || -z "${REF_FASTA:-}" || -z "${VEP_CACHE:-}" ]]; then
+    echo "ERROR: Missing required arguments: -n <gwas_name>, -b <base_dir>, -f <ref_fasta>, -C <vep_cache>." >&2
     usage
 fi
 
@@ -123,10 +125,12 @@ echo "Step 3: Create VCF with Correct REF Allele..."
 plink2 --bfile $OUTPUT_DIR/main_gwas_snps_from_clumps \
     --export vcf --fa $REF_FASTA --out $OUTPUT_DIR/main_gwas_snps_correct_ref --ref-from-fa force
 
-#TODO: provide vep container in git somehow:
 # --- Step 4: VEP Annotation ---
 echo "Step 4: Annotating with VEP..."
-udocker run --volume=/home vep_container vep \
+${CONTAINER_RUNTIME} run \
+    -v "${BASE_DIR}:${BASE_DIR}" \
+    -v "${VEP_CACHE}:/opt/vep/.vep" \
+    "${VEP_IMAGE}" vep \
     -i $OUTPUT_DIR/main_gwas_snps_correct_ref.vcf \
     -o $VEP_OUTPUT_DIR/main_gwas_vep_output.txt \
     --species homo_sapiens --assembly GRCh37 --cache --offline \
@@ -185,7 +189,6 @@ awk 'NR==FNR {exclude_clump[$1]=1; next}
     !($1 in exclude_clump) {print $2}' \
     $OUTPUT_DIR/clumps_with_coding_snps.txt $OUTPUT_DIR/snp_to_clump_mapping.txt | sort | uniq > $OUTPUT_DIR/snps_from_noncoding_clumps.txt
 
-#TODO: change this global path here:
 # --- Step 8: Run the fix_vcf script on filtered VCF ---
 echo "Step 8: Running filter_main_gwas_vcf.sh on filtered VCF..."
 echo "Renaming Chromosomes for Reference Match..."

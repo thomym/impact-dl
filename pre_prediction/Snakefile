@@ -1,17 +1,40 @@
-import os, glob
+"""
+Snakefile for the pre-prediction stage of impact_dl.
 
-configfile: "config.yaml"
+Reads filesystem layout and pipeline knobs from <repo>/paths.yaml
+(see paths.yaml.example at the repo root for the template).
 
+Invoke:
+    snakemake --cores 8 --snakefile Snakefile
 
-# Detect GWAS dirs
-gwas_paths = [
-    os.path.join(config["gwas_root"], "GWAS_NAME"),        # ldl
+Override the paths yaml:
+    snakemake --config paths_yaml=/path/to/other.yaml --cores 8
+"""
 
+import os
+import sys
 
+# Locate the repo root (parent of this Snakefile's directory) and import paths.py.
+_REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(workflow.snakefile), ".."))
+sys.path.insert(0, _REPO_ROOT)
+from paths import load_paths  # noqa: E402
+
+# Allow `--config paths_yaml=...` on the command line.
+_paths_yaml = config.get("paths_yaml") if isinstance(config, dict) else None
+config = load_paths(_paths_yaml)
+
+# Directory holding the bash scripts (so the rules can find them no matter
+# where snakemake is invoked from).
+_SCRIPT_DIR = os.path.dirname(workflow.snakefile)
+
+# GWAS list comes from paths.yaml. Each name must be a subdirectory under
+# `gwas_root` containing `gwas.QC.Transformed`.
+GWAS_FILENAME = "gwas.QC.Transformed"
+
+gwas_dirs = [
+    os.path.join(config["gwas_root"], name) for name in config["gwas_names"]
 ]
-    
-#gwas_paths = glob.glob(os.path.join(config["gwas_root"], "PD*"))
-gwas_dirs = [d for d in gwas_paths if os.path.isfile(os.path.join(d, config["gwas_filename"]))]
+gwas_dirs = [d for d in gwas_dirs if os.path.isfile(os.path.join(d, GWAS_FILENAME))]
 gwas_names = [os.path.basename(d) for d in gwas_dirs]
 
 print(f"Detected GWAS: {gwas_names}")
@@ -21,11 +44,15 @@ print(f"Detected GWAS: {gwas_names}")
 # ---------------------------
 rule all:
     input:
-        expand(os.path.join(config["results_root"], "{gwas}/clumping_and_vcfs_outputs/main_gwas_snps_correct_ref_final.vcf"),
-               gwas=gwas_names),
-        expand(os.path.join(config["results_root"], "{gwas}/vcfs_mock_datasets/mock_dataset{idx}/mock_dataset{idx}_snps_correct_ref_final.vcf"),
-               gwas=gwas_names,
-               idx=range(1, config["n_mock_datasets"]+1))
+        expand(
+            os.path.join(config["results_root"], "{gwas}/clumping_and_vcfs_outputs/main_gwas_snps_correct_ref_final.vcf"),
+            gwas=gwas_names,
+        ),
+        expand(
+            os.path.join(config["results_root"], "{gwas}/vcfs_mock_datasets/mock_dataset{idx}/mock_dataset{idx}_snps_correct_ref_final.vcf"),
+            gwas=gwas_names,
+            idx=range(1, config["n_mock_datasets"] + 1),
+        )
 
 # ---------------------------
 # Rules
@@ -33,24 +60,23 @@ rule all:
 
 rule pre_clumping:
     input:
-        gwas=lambda wc: os.path.join(config["gwas_root"], wc.gwas, config["gwas_filename"]),
+        gwas=lambda wc: os.path.join(config["gwas_root"], wc.gwas, GWAS_FILENAME),
         pop_panel=config["pop_panel"],
         kg_bed=config["kg_bfile"] + ".bed",
-        kg_bim=config["kg_bfile"] + ".bim", 
-        kg_fam=config["kg_bfile"] + ".fam", 
-        
+        kg_bim=config["kg_bfile"] + ".bim",
+        kg_fam=config["kg_bfile"] + ".fam",
     output:
         bed=os.path.join(config["results_root"], "{gwas}/pre_clumping_and_ld/{gwas}_FILTERED_1kg/ds.bed"),
         bim=os.path.join(config["results_root"], "{gwas}/pre_clumping_and_ld/{gwas}_FILTERED_1kg/ds.bim"),
         fam=os.path.join(config["results_root"], "{gwas}/pre_clumping_and_ld/{gwas}_FILTERED_1kg/ds.fam"),
-        gwas_for_clumping=os.path.join(config["results_root"], "{gwas}/pre_clumping_and_ld/gwas_for_clumping.txt")
+        gwas_for_clumping=os.path.join(config["results_root"], "{gwas}/pre_clumping_and_ld/gwas_for_clumping.txt"),
     params:
-        kg_bfile=config["kg_bfile"],  # Pass prefix to shell script
-        output_prefix=lambda wc: os.path.join(config["results_root"], wc.gwas, f"pre_clumping_and_ld/{wc.gwas}_FILTERED_1kg/ds"),
-        gnomad_file = config["gnomad_file"]
+        kg_bfile=config["kg_bfile"],
+        gnomad_file=config["gnomad_file"],
+        script=os.path.join(_SCRIPT_DIR, "gen_pre_clumping.sh"),
     shell:
         """
-        bash gen_pre_clumping.sh \
+        bash {params.script} \
             -g {input.gwas} \
             -p {input.pop_panel} \
             -k {params.kg_bfile} \
@@ -67,21 +93,25 @@ rule main_gwas_to_vcf:
         gwas_for_clumping=os.path.join(config["results_root"], "{gwas}/pre_clumping_and_ld/gwas_for_clumping.txt"),
     output:
         vcf=os.path.join(config["results_root"], "{gwas}/clumping_and_vcfs_outputs/main_gwas_snps_correct_ref_final.vcf"),
-        # Add other expected outputs from this rule
-        clumping_dir=directory(os.path.join(config["results_root"], "{gwas}/clumping_and_vcfs_outputs"))
+        clumping_dir=directory(os.path.join(config["results_root"], "{gwas}/clumping_and_vcfs_outputs")),
     params:
-        bfile_prefix=lambda wc: os.path.join(config["results_root"], wc.gwas, f"pre_clumping_and_ld/{wc.gwas}_FILTERED_1kg/ds"),
         base_dir=lambda wc: os.path.join(config["results_root"], wc.gwas),
         pvalue_threshold=config["pvalue_threshold"],
-        ref_fasta=config["ref_fasta"]
-
+        ref_fasta=config["ref_fasta"],
+        vep_image=config["vep_image"],
+        container_runtime=config["container_runtime"],
+        vep_cache=config["vep_cache"],
+        script=os.path.join(_SCRIPT_DIR, "main_gwas_to_vcf.sh"),
     shell:
         """
-        bash main_gwas_to_vcf_blacklist_local_bcf.sh \
+        bash {params.script} \
             -n {wildcards.gwas} \
             -b {params.base_dir} \
             -p {params.pvalue_threshold} \
-            -f {params.ref_fasta}
+            -f {params.ref_fasta} \
+            -c {params.container_runtime} \
+            -I {params.vep_image} \
+            -C {params.vep_cache}
         """
 
 rule sample_null_blocks:
@@ -89,22 +119,23 @@ rule sample_null_blocks:
         clumping_dir=os.path.join(config["results_root"], "{gwas}/clumping_and_vcfs_outputs"),
         bed=os.path.join(config["results_root"], "{gwas}/pre_clumping_and_ld/{gwas}_FILTERED_1kg/ds.bed"),
         bim=os.path.join(config["results_root"], "{gwas}/pre_clumping_and_ld/{gwas}_FILTERED_1kg/ds.bim"),
-        fam=os.path.join(config["results_root"], "{gwas}/pre_clumping_and_ld/{gwas}_FILTERED_1kg/ds.fam")
+        fam=os.path.join(config["results_root"], "{gwas}/pre_clumping_and_ld/{gwas}_FILTERED_1kg/ds.fam"),
     output:
         mock_dir=directory(os.path.join(config["results_root"], "{gwas}/mock_datasets")),
         mock_files=expand(
             os.path.join(config["results_root"], "{{gwas}}/mock_datasets/mock_dataset{idx}.tsv"),
-            idx=range(1, config["n_mock_datasets"]+1)
-        )
+            idx=range(1, config["n_mock_datasets"] + 1),
+        ),
     params:
         n_mock=config["n_mock_datasets"],
-        base_dir=lambda wc: os.path.join(config["results_root"], wc.gwas)
+        base_dir=lambda wc: os.path.join(config["results_root"], wc.gwas),
+        script=os.path.join(_SCRIPT_DIR, "sample_null_blocks.py"),
     resources:
-        mem_mb=50000,  # For scheduling only
-        sample_null_blocks_concurrent=1  # Only 1 at a time!
+        mem_mb=50000,
+        sample_null_blocks_concurrent=1,
     shell:
         """
-        python3 sample_null_blocks.py {params.base_dir} \
+        python3 {params.script} {params.base_dir} \
             --n_mock_datasets {params.n_mock} --use_pickles
         """
 
@@ -115,24 +146,32 @@ rule mock_to_vcf:
         bim=os.path.join(config["results_root"], "{gwas}/pre_clumping_and_ld/{gwas}_FILTERED_1kg/ds.bim"),
         fam=os.path.join(config["results_root"], "{gwas}/pre_clumping_and_ld/{gwas}_FILTERED_1kg/ds.fam"),
         mock_dir=os.path.join(config["results_root"], "{gwas}/mock_datasets"),
-        specific_mock=os.path.join(config["results_root"], "{gwas}/mock_datasets/mock_dataset{idx}.tsv")
+        specific_mock=os.path.join(config["results_root"], "{gwas}/mock_datasets/mock_dataset{idx}.tsv"),
     output:
         vcf=os.path.join(
             config["results_root"],
             "{gwas}",
-            "vcfs_mock_datasets/mock_dataset{idx}/mock_dataset{idx}_snps_correct_ref_final.vcf"
-        )
+            "vcfs_mock_datasets/mock_dataset{idx}/mock_dataset{idx}_snps_correct_ref_final.vcf",
+        ),
     params:
-        kg_bfile_prefix=lambda wc: os.path.join(config["results_root"], wc.gwas, f"pre_clumping_and_ld/{wc.gwas}_FILTERED_1kg/ds"),
+        kg_bfile_prefix=lambda wc: os.path.join(
+            config["results_root"], wc.gwas,
+            f"pre_clumping_and_ld/{wc.gwas}_FILTERED_1kg/ds",
+        ),
         base_dir=lambda wc: os.path.join(config["results_root"], wc.gwas),
-        ref_fasta=config["ref_fasta"]
-
+        ref_fasta=config["ref_fasta"],
+        vep_image=config["vep_image"],
+        container_runtime=config["container_runtime"],
+        vep_cache=config["vep_cache"],
+        script=os.path.join(_SCRIPT_DIR, "mock_dataset_to_vcf.sh"),
     shell:
         """
-        bash mock_dataset_to_vcf_single_local_bcf.sh \
+        bash {params.script} \
             -k {params.kg_bfile_prefix} \
             -b {params.base_dir} \
             -i {wildcards.idx} \
-            -f {params.ref_fasta}
-
+            -f {params.ref_fasta} \
+            -c {params.container_runtime} \
+            -I {params.vep_image} \
+            -C {params.vep_cache}
         """
