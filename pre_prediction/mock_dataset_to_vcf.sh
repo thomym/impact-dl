@@ -142,4 +142,4 @@ bcftools norm --check-ref s --fasta-ref $REF_FASTA \
     -o $OUTPUT_DIR/$NAME/${NAME}_snps_correct_ref_final.vcf $OUTPUT_DIR/$NAME/${NAME}_snps_correct_ref_filtered.vcf
 
 
-echo "Mock dataset $NAME processing completed!"
+echo "Mock dataset $NAME processing complete."

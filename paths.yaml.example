@@ -28,7 +28,8 @@ results_root:    ${work_dir}/results
 # Reference data (under `resources/` by default; see README for downloads)
 # ---------------------------------------------------------------------------
 
-gnomad_version:  r4.1
+# Label of your gnomAD directory/filenames (just a string used in the paths below).
+gnomad_version:  r2.1.1
 # Per-chromosome MAF tables used by gwas_preprocess/prepare_gwas.py
 gnomad_dir:      ${resources}/gnomad/${gnomad_version}
 # Single concatenated MAF table (CHROM POS ID REF ALT MAF) used by
@@ -40,13 +41,14 @@ pop_panel:       ${resources}/1kg/integrated_call_samples_v3.20130502.ALL.panel
 
 vep_cache:       ${resources}/vep_cache
 
-# Ontology data:
-#   ontology_dir holds .owl files (user downloads), the sup_table_2 input, the
-#   bundled BioPortal caches, and the matched/ + collapsed/ subdirs (written
-#   by 4a-four_ontologies.py and 4b-ancestor_and_collapse.py).
+# Ontology data.
+#   sup2_file + bioportal_cache_dir live in the repo under
+#   ontology_matching/data/ (referenced via ${repo}).
+#   ontology_dir holds the OWL files (from OLS) and the matched/ + collapsed/
+#   output subdirs written by 1-four_ontologies.py and 2-ancestor_and_collapse.py.
 ontology_dir:           ${resources}/ontology
-sup2_file:              ${ontology_dir}/sup_table_2_sei_article.csv
-bioportal_cache_dir:    ${ontology_dir}/cache
+sup2_file:              ${repo}/ontology_matching/data/sup_table_2_sei_article.csv
+bioportal_cache_dir:    ${repo}/ontology_matching/data/bioportal_cache
 ontology_matched_dir:   ${ontology_dir}/matched
 ontology_collapsed_dir: ${ontology_dir}/collapsed
 

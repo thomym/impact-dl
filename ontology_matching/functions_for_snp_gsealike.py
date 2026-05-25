@@ -1,12 +1,12 @@
-"""GSEA-like enrichment helpers used by 4c-enrichment_per_gwas.py.
+"""GSEA-like enrichment helpers used by 3-enrichment_per_gwas.py.
 
-Ported from the original `functions_for_snp_gsealike.py` with three changes:
-- Drop plotting / interactive helpers (unused by the pipeline; the original
-  `plot_gsea_analysis` was an incomplete stub).
-- `permutation_test` now accepts a `seed` argument so 4c outputs are
-  byte-reproducible (NES / ES_pvalue would otherwise jitter across runs).
-- Remove the `get_tissue_indices` / `perform_tissue_gsea_analysis` wrappers
-  (no longer used now that ontology masks come from the collapsed mappings).
+Provides:
+- compute_enrichment_score: one-sided GSEA-like enrichment score for a
+  foreground annotation set.
+- permutation_test: NES and empirical ES p-value (seeded for reproducible
+  output).
+- statistical_tests: Mann-Whitney U and Fisher's exact test on the SNP-score
+  distribution.
 """
 import numpy as np
 from scipy.stats import mannwhitneyu, fisher_exact

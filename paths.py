@@ -57,6 +57,11 @@ def load_paths(yaml_path=None, **overrides):
     with open(yaml_path) as f:
         raw = yaml.safe_load(f)
 
+    # `${repo}` resolves to the repo root (this module's directory) so bundled
+    # data (e.g. ontology_matching/data/) can be referenced without the user
+    # editing absolute paths. User may override by defining `repo` in the yaml.
+    raw.setdefault("repo", str(_REPO_ROOT))
+
     resolved = {k: _resolve(raw, k, set()) for k in raw}
 
     for k, v in overrides.items():

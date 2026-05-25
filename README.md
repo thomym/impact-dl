@@ -4,10 +4,9 @@ A pipeline for computing tissue/cell-type enrichment of GWAS signals using
 sequence-based epigenomic predictions ([Sei](https://github.com/FunctionLab/sei-framework)),
 matched background null sets, and ontology-based profile annotation.
 
-> **Status.** Steps 1 – 4 are all stable and configured from a single
-> `paths.yaml`. The reference-data Zenodo bundle (gnomAD tables, BioPortal
-> caches, sup2 table, example GWAS) is being uploaded; the DOI will be
-> linked here.
+> **Status.** Steps 1 – 4 are stable and configured from a single `paths.yaml`.
+> Reference data (gnomAD, 1KG, OWL files) is downloaded by the user following
+> the instructions below.
 
 ---
 
@@ -183,7 +182,7 @@ in `paths.yaml` — e.g. if `sei-framework` already lives at
 | What | Source | Goes to | Size |
 |------|--------|---------|------|
 | Sei model weights + hg19 FASTA + `target.names` | sei-framework's `download_data.sh` | `<work_dir>/sei-framework/` | ~5 GB |
-| gnomAD MAF tables | **Zenodo** *(DOI: TBA)* | `<resources>/gnomad/<version>/` | TBD |
+| gnomAD MAF tables | built from a gnomAD release (see below) | `<resources>/gnomad/<version>/` | varies |
 | 1KG PLINK bfiles + EUR panel | 1000 Genomes FTP | `<resources>/1kg/` | ~30 GB |
 | VEP offline cache (GRCh37) | Ensembl VEP `INSTALL.pl` | `<resources>/vep_cache/` | ~25 GB |
 | Ontology OWL files | OLS / OBO Foundry | `<resources>/ontology/` | a few MB each |
@@ -197,23 +196,17 @@ bash download_data.sh
 
 This populates `sei-framework/resources/hg19_UCSC.fa` and `sei-framework/model/target.names`.
 
-### 2. gnomAD MAF tables *(Zenodo DOI: TBA)*
+### 2. gnomAD MAF tables
 
-These are derived 5-column TSVs (one per chromosome) with header
-`CHROM POS ID REF ALT MAF`. We host the prebuilt set on Zenodo so you can
-download a single tarball instead of building them yourself:
+The pipeline reads per-chromosome TSVs with columns `CHROM POS ID REF ALT MAF`,
+plus one file concatenated across all chromosomes. The `MAF` column is the
+European allele frequency from gnomAD. Produce these from a gnomAD release
+using any tool that writes those columns (it gets folded to the true
+minor-allele frequency downstream).
 
-```
-<resources>/gnomad/r4.1/
-├── gnomad.r4.1.chr1_eur_maf_0
-├── …
-└── gnomad.r4.1.chr22_eur_maf_0
-└── gnomad.r4.1.all_eur_maf_0    ← single concatenated file
-```
-
-The concatenated file (`gnomad_file` in `paths.yaml`) is used by
-`pre_prediction/gen_pre_clumping.sh` for SNP-level MAF lookup during clumping;
-the per-chromosome files are used by `gwas_preprocess/prepare_gwas.py`.
+Set `gnomad_version` in `paths.yaml` to match your gnomAD directory name. The
+per-chromosome files feed `gwas_preprocess/prepare_gwas.py`; the concatenated
+file feeds `pre_prediction/gen_pre_clumping.sh`.
 
 ### 3. 1KG PLINK bfiles + EUR panel
 
@@ -251,13 +244,13 @@ Download `efo.owl`, `bto.owl`, `cl.owl`, `clo.owl` from
 into `<resources>/ontology/` (paths overridable via `efo_owl` / `bto_owl` /
 `cl_owl` / `clo_owl` in `paths.yaml`).
 
-Step 4 also needs:
+Step 4 also reads two files that live in the repo under
+`ontology_matching/data/` (resolved via `${repo}` in `paths.yaml`):
 
-- `sup_table_2_sei_article.csv` — standardized cell-type names (lives at
-  `${sup2_file}`; bundled on Zenodo).
-- `${bioportal_cache_dir}/` — pre-computed BioPortal annotation caches
-  (also bundled on Zenodo). With these in place, `1-four_ontologies.py`
-  doesn't hit the network.
+- `sup_table_2_sei_article.csv` — standardized cell-type names (`${sup2_file}`).
+- `bioportal_cache/` — pre-computed BioPortal annotation caches
+  (`${bioportal_cache_dir}`). With these present, `1-four_ontologies.py` reads
+  cached annotations instead of querying the BioPortal API.
 
 ---
 
@@ -296,10 +289,29 @@ python paths.py --paths_yaml paths.yaml
 
 ## Step-by-step usage
 
-### Step 1 — Prepare GWAS (`gwas_preprocess/`)
+### Step 1 — Prepare GWAS (`gwas_preprocess/`) — *optional*
+
+> **Optional.** This step is a convenience preprocessor that turns a raw GWAS
+> summary-statistics file into the `gwas.QC.Transformed` format the rest of the
+> pipeline consumes. If you already have QC'd summary statistics, **skip this
+> step** and provide a file matching the input contract below.
 
 Input:  `${gwas_root}/${gwas_name}/gwas_raw.tsv`
 Output: `${gwas_root}/${gwas_name}/gwas.QC.Transformed`
+
+#### Input contract — `gwas.QC.Transformed`
+
+If you bypass Step 1, your file must be a tab-separated table with this column
+order (the rest of the pipeline reads columns positionally):
+
+```
+SNP  CHR  BP  A1  A2  MAF  SE  P  N  INFO  BETA  OR
+```
+
+- `SNP` = rsID, `CHR` = 1–22, `BP` = hg19 position, `A1` = effect allele,
+  `A2` = other allele, `MAF` = minor-allele frequency, `BETA`/`OR` = effect.
+- The QC filters Step 1 applies (you should apply equivalents): `MAF > 0.01`,
+  `INFO > 0.8`, no strand-ambiguous SNPs (A/T, G/C), no duplicate SNP IDs.
 
 **1a. Reformat headers and merge MAF from gnomAD**
 
@@ -525,10 +537,10 @@ python 1-four_ontologies.py
 ```
 
 The Annotator API is rate-limited (queries can take hours for a fresh sup2).
-We bundle pre-computed caches on Zenodo (`annotation_cache_*.pkl` +
-`bioportal_class_cache.json`, ~7.7 MB) — drop them under
-`${bioportal_cache_dir}` (default: `${ontology_dir}/cache/`) and the script
-becomes a 30-second offline pass.
+Pre-computed caches (`annotation_cache_*.pkl` + `bioportal_class_cache.json`)
+are in the repo at `${bioportal_cache_dir}`; the script reads them instead of
+querying the API. To regenerate, set `BIOPORTAL_API_KEY` and delete the cache
+files.
 
 Output: `${ontology_matched_dir}/matched_sup2_<ont>.csv` for each ontology.
 
